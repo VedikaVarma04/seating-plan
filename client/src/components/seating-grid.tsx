@@ -43,25 +43,27 @@ export function SeatingGrid({ seats, onSeatClick, readOnly = false, highlightRol
                       onClick={() => seat && !readOnly && onSeatClick?.(seat)}
                       disabled={readOnly}
                       className={cn(
-                        "w-12 h-12 md:w-14 md:h-14 rounded-lg border-2 flex items-center justify-center transition-all duration-200 relative",
-                        !seat ? "opacity-0 pointer-events-none" : "hover:-translate-y-1 hover:shadow-md",
+                        "w-16 h-16 md:w-20 md:h-20 rounded-2xl border-2 flex items-center justify-center transition-all duration-200 relative",
+                        !seat ? "opacity-0 pointer-events-none" : "hover:-translate-y-1 hover:shadow-md shadow-sm",
                         isOccupied 
-                          ? "bg-secondary border-secondary-foreground/20 text-secondary-foreground" 
+                          ? "bg-[#FFF9C4] border-[#D4D4D4] text-[#333333]" 
                           : "bg-background border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5",
-                        isHighlighted && "ring-2 ring-primary ring-offset-2 bg-primary/10 border-primary",
+                        isHighlighted && "ring-4 ring-primary ring-offset-2 bg-[#FFF9C4] border-primary",
                         readOnly && !isOccupied && "opacity-50"
                       )}
                     >
                       {isOccupied ? (
-                        <div className="flex flex-col items-center">
-                          {isHighlighted ? (
-                            <CheckCircle2 className="w-5 h-5 text-primary mb-0.5" />
-                          ) : (
-                            <User className="w-5 h-5 opacity-40 mb-0.5" />
-                          )}
-                          <span className="text-[10px] font-mono font-bold truncate max-w-[40px] leading-none">
-                            {seat?.studentId}
-                          </span>
+                        <div className="flex flex-col items-center p-1 w-full h-full justify-between">
+                          <div className="text-[10px] font-bold text-muted-foreground self-start px-1 uppercase tracking-tighter">Add Text</div>
+                          <div className="flex flex-col items-center justify-center flex-1">
+                            {isHighlighted && (
+                              <CheckCircle2 className="w-4 h-4 text-primary absolute top-1 right-1" />
+                            )}
+                            <span className="text-xs font-mono font-bold truncate max-w-[60px] leading-tight text-center">
+                              {seat?.studentId}
+                            </span>
+                          </div>
+                          <div className="text-[8px] font-medium text-muted-foreground self-end px-1 italic">Vedika Varma</div>
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground/30 font-mono">

@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Calendar, Clock, MapPin } from "lucide-react";
+import { Plus, Search, Calendar, Clock, MapPin, Upload, FileSpreadsheet } from "lucide-react";
 import { SeatingGrid } from "@/components/seating-grid";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 export default function FacultyDashboard() {
   const { toast } = useToast();
@@ -17,6 +18,59 @@ export default function FacultyDashboard() {
   const [selectedSession, setSelectedSession] = useState<ExamSession | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSeat, setEditingSeat] = useState<{seatId: string, currentRoll: string} | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedSession) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        // Expecting format: Row, Col, RollNo
+        // Skip header if needed, assuming first row is data or header
+        json.forEach((row, index) => {
+          if (index === 0 && isNaN(Number(row[0]))) return; // Skip header
+          const r = parseInt(row[0]) - 1;
+          const c = parseInt(row[1]) - 1;
+          const rollNo = String(row[2]);
+
+          if (!isNaN(r) && !isNaN(c) && rollNo) {
+            const seat = selectedSession.seats.find(s => s.row === r && s.col === c);
+            if (seat) {
+              db.updateSeat(selectedSession.id, seat.id, rollNo);
+            }
+          }
+        });
+
+        const updated = db.getSession(selectedSession.id);
+        if (updated) setSelectedSession({ ...updated });
+        
+        toast({ 
+          title: "Import Successful", 
+          description: "Seating arrangement has been updated from the spreadsheet." 
+        });
+      } catch (error) {
+        toast({ 
+          variant: "destructive",
+          title: "Import Failed", 
+          description: "Could not read the spreadsheet. Please check the format (Row, Col, RollNo)." 
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  };
   
   // New Session Form State
   const [newBranch, setNewBranch] = useState<Branch>(BRANCHES[0]);
@@ -155,6 +209,40 @@ export default function FacultyDashboard() {
               <div>
                 <h2 className="text-xl font-bold">{selectedSession.subject}</h2>
                 <p className="text-sm text-muted-foreground">{selectedSession.branch} • {selectedSession.date} at {selectedSession.time}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-xl border border-primary/20 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-lg">
+                  <FileSpreadsheet className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Spreadsheet Import</p>
+                  <p className="text-xs text-muted-foreground">Upload .xlsx or .csv (Row, Col, RollNo)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="excel-upload"
+                  className="hidden"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  asChild 
+                  disabled={isUploading}
+                  className="cursor-pointer"
+                >
+                  <label htmlFor="excel-upload">
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isUploading ? "Processing..." : "Upload Seating List"}
+                  </label>
+                </Button>
               </div>
             </div>
 

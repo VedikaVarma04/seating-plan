@@ -1,12 +1,19 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, LogOut } from "lucide-react";
+import { clearAuth, getUser, apiFetch } from "@/lib/auth";
 
 export function Navbar({ role }: { role?: "faculty" | "student" }) {
   const [_, setLocation] = useLocation();
+  const user = getUser();
 
-  const handleLogout = () => {
-    localStorage.removeItem("user_role");
+  const handleLogout = async () => {
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    clearAuth();
     setLocation("/");
   };
 
@@ -30,6 +37,7 @@ export function Navbar({ role }: { role?: "faculty" | "student" }) {
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium hidden md:inline-block px-3 py-1 bg-secondary rounded-full">
                 {role === "faculty" ? "Faculty Access" : "Student Portal"}
+                {user?.name && ` • ${user.name}`}
               </span>
               <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive">
                 <LogOut className="h-4 w-4 mr-2" />
